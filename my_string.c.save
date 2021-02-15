@@ -1,0 +1,297 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "my_string.h"
+#include "status.h"
+
+
+struct st{
+	int size;
+	int capacity;
+	char* cP;
+	int front;
+	int back;
+};
+
+typedef  enum status Status;
+
+typedef struct st S;
+
+MY_STRING my_string_init_default(void)
+{
+	S* data = (S*)malloc(sizeof(S));
+
+			data->size = 0;
+			data->capacity = 7;
+			data->cP = (char*)malloc(sizeof(char)*data->capacity);
+			
+	return data;
+}
+
+MY_STRING my_string_init_c_string(const char* c_string)
+{	
+	int x;
+	S* str = (S*)malloc(sizeof(S));
+
+	for( x = 0; c_string[x] != '\0'; x++);
+
+	str->size = x;
+	str->capacity = x+1;
+
+	str->cP = (char*)malloc(sizeof(char)*str->capacity);
+
+	if(str->cP == NULL){
+		free(str->cP);
+		free(str);
+		str = NULL;
+		return NULL;
+		exit(1);
+	
+	}
+
+	for( x = 0; x <=  str->size; x++)
+	{
+		str->cP[x] = c_string[x];
+	
+	}
+	str->cP[str->size] = '\0';
+
+	if(str->cP == NULL)
+	{
+		free(str);
+		str = NULL;
+	}
+ 
+	return str;
+}
+
+int my_string_get_capacity(MY_STRING hMy_string)
+{
+	return (((S*)hMy_string)->capacity);
+}
+
+int my_string_get_size(MY_STRING hMy_string)
+{
+	return (((S*)hMy_string)->size);
+
+}
+
+int my_string_compare(MY_STRING hLeft_string, MY_STRING hRight_string)
+{
+	S* l_str = (S*)hLeft_string;
+	S* r_str = (S*)hRight_string;
+	int x = 0;
+	
+	int size = l_str->size < r_str->size ? l_str->size : r_str->size; 
+
+	while(x < size )
+	{
+		if(l_str->cP[x] < r_str->cP[x])
+			return -1;
+		else if(r_str->cP[x] < l_str->cP[x])
+			return 1;
+		printf("%c =  %c\n", l_str->cP[x], r_str->cP[x]);
+		x++;
+	}
+
+	if ( l_str->size < r_str->size) 
+		return -1;
+	if( l_str->size > r_str->size)
+		return 1;
+	else 
+		return 0;
+
+
+
+
+}
+
+void my_string_destroy(Item* pItem)
+{
+	S*  hMy_string = (S*)*pItem;
+	free(hMy_string->cP);
+	free(hMy_string);
+	*pItem = NULL;
+
+}
+
+Status my_string_extraction(MY_STRING hMy_string, FILE* fp)
+	
+{
+	S* my_string = (S*)hMy_string;
+	my_string->size = 0;
+	char c = fgetc(fp);
+	int x = 0;
+
+	while(c == ' ' || c == '\n')
+		c = fgetc(fp);
+
+	while(c != EOF && c != ' ' &&  c != '\n' )
+	{
+		if(my_string->capacity > x + 1){
+			my_string->size = x + 1;
+			my_string->cP[x] = c;
+		}else{
+		
+			char* str = my_string->cP;
+			free(my_string->cP);
+			my_string->cP = (char*)malloc(sizeof(char)*my_string->capacity*2);
+			strcpy(my_string->cP, str);
+			my_string->size = x + 1;
+			my_string->capacity *=2;
+			my_string->cP[x] = c;
+		}
+		x +=1;
+		c = fgetc(fp);
+
+	}
+	if(x == 0)
+		return FAILURE;
+	else{
+		if(c == ' ' && x != 0)
+			ungetc(c, fp);
+		return SUCCESS;
+	}
+}
+ 
+ Status my_string_insertion(MY_STRING hMy_string, FILE* fp){
+	 S* my_string = (S*)hMy_string;
+	 int x = 0;
+
+	 for(x = 0; x < my_string->size; x++){
+	 	fputc(my_string->cP[x], fp);
+	 }
+
+	 
+	 if(x == 0)
+		 return FAILURE;
+	 else
+		 return SUCCESS;
+  }
+ 
+//lab_4
+Status my_string_push_back(MY_STRING hMy_string, char item){
+	S* my_string = (S*)hMy_string;
+	int x = 0;
+	char* temp = NULL;
+
+	if(my_string->size >= my_string->capacity)
+	{
+		temp = (char*)malloc(sizeof(char)*my_string->capacity*2);
+		if(temp == NULL)
+			return FAILURE;
+		
+		for(x = 0; x < my_string->size; x++){
+			temp[x] = my_string->cP[x];
+		}
+
+		free(my_string->cP);
+		my_string->cP = temp;
+		my_string->capacity *=2;
+		my_string->front = 0;
+		my_string->back = my_string->size;
+		
+	}
+	
+	my_string->cP[my_string->size] = item;
+
+	my_string->size++;
+	//free(temp);
+	return SUCCESS;
+
+}
+
+Status my_string_pop_back(MY_STRING hMy_string)
+{
+	S* my_string = (S*)hMy_string;
+	my_string->size--;
+
+	return SUCCESS;
+}
+
+char* my_string_at(MY_STRING hMy_string, int index)
+{
+	S* my_string = (S*)hMy_string;
+	if(index > my_string->size || index < 0)
+		return NULL;
+	else
+		return &my_string->cP[index];
+}
+
+char* my_string_c_str(MY_STRING hMy_string)
+{
+	S* my_string = (S*)hMy_string;
+	return my_string->cP;
+}
+
+Status my_string_concat(MY_STRING hResult, MY_STRING hAppend)
+{
+	S* my_string_append = (S*)hAppend;
+	int x;
+
+	if(my_string_empty(hResult))
+		return FAILURE;
+
+	for(x = 0; x < my_string_append->size; x++)
+	{
+		my_string_push_back(hResult, my_string_append->cP[x]);
+	}
+
+	return SUCCESS;
+	
+}
+
+Boolean my_string_empty(MY_STRING hMy_string)
+{
+	S* my_string = (S*)hMy_string;
+	int x = 0;
+
+	if(my_string->cP[x] == '\0')
+		return true;
+	else
+		return false;
+
+}
+
+void my_string_assignment(Item* pLeft, Item Right)
+{
+	S* right = (S*)Right;
+	if(pLeft == NULL){
+		S* deep_cpy = NULL;
+		deep_cpy =(S*)malloc(sizeof(S));
+		deep_cpy->capacity = right->capacity;
+		deep_cpy->size = right->size;
+		deep_cpy->cP = (char*)malloc(sizeof(char)*right->capacity);
+//		printf("We got to NULL\n");
+		if(deep_cpy->cP  == NULL)
+		{
+			free(deep_cpy);
+			deep_cpy = NULL;
+			return;
+		}
+
+		for(int x = 0; x < deep_cpy->size; x++)
+		{
+			deep_cpy->cP[x] = right->cP[x];
+		}
+		*pLeft = deep_cpy;
+	}else{
+		//printf("Else statment\n");
+		((S*)*pLeft)->size = right->size;
+		((S*)*pLeft)->capacity = right->capacity;
+		
+free(((S*)*pLeft)->cP);
+		((S*)*pLeft)->cP = (char*)malloc(sizeof(char)*right->capacity);
+		if(((S*)*pLeft)->cP == NULL){
+			free(((S*)*pLeft));
+			*pLeft = NULL;
+			return;
+		}
+		//printf("we got out of here and we're copying data\n");
+		for(int x = 0; x < right->size; x++)
+		{
+			
+			((S*)*pLeft)->cP[x] = right->cP[x];
+		}
+	}
+}
